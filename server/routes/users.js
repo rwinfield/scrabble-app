@@ -28,7 +28,7 @@ router.route('/add').post((req, res) => {
 });
 
 router.route('/update/:uuid').post((req, res) => {
-    User.findById(req.params.id)
+    User.findOne({uuid: req.params.uuid})
         .then(user => {
             user.username = req.body.username;
             user.save()

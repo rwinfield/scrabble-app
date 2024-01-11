@@ -14,8 +14,8 @@ function LoginSuccess() {
             await supabase.auth.getUser().then((value) => {
                 if (value.data?.user) {
                     setUser(value.data.user);
-
                     const uuid = value.data.user.id;
+                    
                     async function initAccount() {
                         await axios.get(`http://localhost:5050/users/${uuid}`)
                             .then(async response => {
@@ -35,7 +35,6 @@ function LoginSuccess() {
                 }
                 setLoading(false);
 
-                
             })
         }
 

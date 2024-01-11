@@ -6,21 +6,29 @@ import { useEffect } from 'react';
 import supabase from './supabaseClient'
 
 function Login() {
-
     const navigate = useNavigate();
-    
-    //let old_event; // prevents redirect to success page upon leaving tab
+
+    function onAuthStateChange(callback) {
+        let currentSession = null;
+      
+        // https://github.com/supabase/gotrue-js/issues/284 for solution to auto-redirect on leaving tab, many thanks
+        supabase.auth.onAuthStateChange((event, session) => {
+            if (session?.user?.id === currentSession?.user?.id) return;
+            currentSession = session;
+            callback(session);
+        });
+    }
 
     useEffect(() => {
-        supabase.auth.onAuthStateChange(async (event) => {
-            if (event === "SIGNED_IN" /*&& old_event !== event*/) {
+        onAuthStateChange(async (event) => {
+            if (event === "SIGNED_IN") {
                 navigate("/logged_in"); 
             }
             else {
                 navigate("/");
             }
         });  
-    }, [navigate]);
+    }, []);
     
     return (
         <div className="App">

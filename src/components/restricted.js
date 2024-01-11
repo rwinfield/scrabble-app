@@ -20,7 +20,7 @@ function Restricted({ children }) {
         }
         
         getUserData();
-    });
+    }, []);
 
     if (loading) {
         return (

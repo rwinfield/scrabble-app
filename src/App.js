@@ -12,10 +12,8 @@ function App() {
             <div>
                 <Routes>
                 <Route path="/" element={ <Login/> }/>
-                {/* <Restricted> */}
                     <Route path="/logged_in" element={ <Restricted><LoginSuccess/></Restricted> }/>
                     <Route path="/account" element={ <Restricted><Account/></Restricted> }/>
-                {/* </Restricted> */}
                 </Routes>
             </div>
         </Router>
