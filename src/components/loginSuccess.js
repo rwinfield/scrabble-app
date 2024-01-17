@@ -1,61 +1,68 @@
 import '../App.css';
 import { useNavigate } from 'react-router-dom';
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import supabase from './supabaseClient';
 import axios from 'axios';
+import 'reactjs-popup/dist/index.css';
+
+import PlayPopup from './popups/playPopup';
+import { useSupabaseUser } from './supabaseUser';
 
 function LoginSuccess() {
-    const [user, setUser] = useState({});
-    const [loading, setLoading] = useState(true);
+    
     const navigate = useNavigate();
 
+    const { supabaseUser: user } = useSupabaseUser();
+
     useEffect(() => {
-        async function getUserData() {
-            await supabase.auth.getUser().then((value) => {
-                if (value.data?.user) {
-                    setUser(value.data.user);
-                    const uuid = value.data.user.id;
-                    
-                    async function initAccount() {
-                        await axios.get(`http://localhost:5050/users/${uuid}`)
-                            .then(async response => {
-                                if (response.data.length === 0) {
-                                    await axios.post('http://localhost:5050/users/add', {
-                                        uuid: uuid,
-                                        username: ""
-                                    });
-                                }
-                            })
-                            .catch(async (error) => {
-                                console.log(error);
-                            })
-                    }
-
-                    initAccount();
+        async function getUserData() {            
+            if (user) {
+                const uuid = user.id;
+                
+                // THIS PART TO BE MOVED TO LOGIN PAGE. THIS SHOULD HAPPEN DIRECTLY AFTER A NEW USER SIGNS UP.
+                async function initAccount() {
+                    await axios.get(`http://localhost:5050/users/${uuid}`)
+                        .then(async response => {
+                            if (response.data.length === 0) {
+                                await axios.post('http://localhost:5050/users/add', {
+                                    uuid: uuid,
+                                    username: ""
+                                });
+                            }
+                        })
+                        .catch(async (error) => {
+                            console.log(error);
+                        })
                 }
-                setLoading(false);
 
-            })
+                initAccount();
+            }
         }
 
         getUserData();
-    }, [])
+    }, [user])
 
     async function signOutUser() {
+        try { // sometimes Google auth will store auth token; clear in case this happens
+            localStorage.removeItem('prevAccessToken');
+        }
+        catch {}
         await supabase.auth.signOut();
         navigate("/");
+        
     }
 
     return (
         <div className="App">
             <header className="App-header">
-                {!loading && <div>
-                    <h1>Welcome, {user.user_metadata?.full_name ? user.user_metadata.full_name : user.email}!</h1>
+                <div>
+                    <h1>Welcome, {user.username ? user.username : user.email}!</h1>
+                    <br/>
+                        <PlayPopup/>
                     <br/>
                     <button onClick={() => navigate("/account")}>My account</button>
                     <button onClick={() => signOutUser()}>Sign out</button>
                 </div>
-                }
             </header>
         </div>
     )

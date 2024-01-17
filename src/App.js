@@ -5,15 +5,16 @@ import Login from "./components/loginPage";
 import LoginSuccess from "./components/loginSuccess";
 import Account from "./components/accountPage";
 import Restricted from "./components/restricted";
+import { SupabaseUserProvider } from "./components/supabaseUser";
 
 function App() {
     return (
         <Router>
             <div>
                 <Routes>
-                <Route path="/" element={ <Login/> }/>
-                    <Route path="/logged_in" element={ <Restricted><LoginSuccess/></Restricted> }/>
-                    <Route path="/account" element={ <Restricted><Account/></Restricted> }/>
+                    <Route path="/" element={ <Login/> }/>
+                    <Route path="/logged_in" element={ <SupabaseUserProvider><Restricted><LoginSuccess/></Restricted></SupabaseUserProvider> }/>
+                    <Route path="/account" element={ <SupabaseUserProvider><Restricted><Account/></Restricted></SupabaseUserProvider> }/>
                 </Routes>
             </div>
         </Router>

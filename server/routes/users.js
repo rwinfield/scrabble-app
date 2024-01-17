@@ -38,4 +38,10 @@ router.route('/update/:uuid').post((req, res) => {
         .catch(err => res.status(400).json('Error: ' + err));
 });
 
+router.route('/findByUsername/:username').get((req, res) => {
+    User.find({username: req.params.username})
+        .then(users => res.json(users))
+        .catch(err => res.status(400).json('Error: ' + err));
+})
+
 module.exports = router;
