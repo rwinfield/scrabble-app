@@ -15,9 +15,11 @@ function Account() {
             if (user) {
                 setUuid(user.id);
                 
-                const response = await axios.get(`http://localhost:5050/users/${user.id}`);
-                setUsername(response.data[0].username);
-                setOldUsername(response.data[0].username);
+                // const response = await axios.get(`http://localhost:5050/users/${user.id}`);
+                // setUsername(response.data[0].username);
+                // setOldUsername(response.data[0].username);
+                setUsername(user.username);
+                setOldUsername(user.username);
             }
         }
 

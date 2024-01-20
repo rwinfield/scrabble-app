@@ -3,7 +3,7 @@ import Popup from 'reactjs-popup';
 import 'reactjs-popup/dist/index.css';
 import InvitePopup from './invitePlayersPopup';
 
-const PlayPopup = () => {
+const PlayPopup = ({ usernameExists }) => {
     const [openInvitePopup, setOpenInvitePopup] = useState(false);
     const [closing, setClosing] = useState(false);
     return (
@@ -13,6 +13,7 @@ const PlayPopup = () => {
                 trigger = {<button>Play</button>} 
                 onOpen={() => {setClosing(false)}}
                 closeOnDocumentClick={false}
+                disabled={!usernameExists}
                 >
                 {close => (
                     <div className={closing ? 'custom-popup' : ''}>

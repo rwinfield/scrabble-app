@@ -3,8 +3,9 @@ import Popup from 'reactjs-popup';
 import 'reactjs-popup/dist/index.css';
 import axios from 'axios';
 import { useSupabaseUser } from '../supabaseUser';
+import { io } from 'socket.io-client';
 
-const InvitePopup = ({ openInvitePopup, setOpenInvitePopup }) => {
+const InvitePlayersPopup = () => {
 
     // manages popup closing effect
     const [closing, setClosing] = useState(false);
@@ -35,7 +36,6 @@ const InvitePopup = ({ openInvitePopup, setOpenInvitePopup }) => {
 
     // the user's own username (works in tandem with the above)
     const [ownUsername, setOwnUsername] = useState('');
-
 
     // list of the players the user would like to invite
     const [inviteList, setInviteList] = useState([]);
@@ -110,13 +110,79 @@ const InvitePopup = ({ openInvitePopup, setOpenInvitePopup }) => {
         setInviteList(newList);
         setPlayerCount(playerCount - 1);
     }
+
+    const handleInvite = async (close) => {
+        
+        const timestamp = new Date();
+        
+        const inviteJSON =
+            {
+                active: true,
+                lobbyID: `lobby_${user.id}_${timestamp.getTime()}`,
+                date: timestamp,            
+                players: [
+                    {
+                        uuid: user.id,
+                        username: user.username,
+                        isHost: true,
+                        accepted: true
+                    }
+                ]
+            }
+
+        inviteList.forEach(player => {
+            inviteJSON.players.push({
+                uuid: player.uuid,
+                username: player.username,
+                isHost: false,
+                accepted: false
+            });
+        });
+
+        const socket = io('http://localhost:4000');
+        inviteList.forEach(player => {
+            // send the invite to 'send-invite' channel with the invite JSON object, the recipient UUID,
+            // and the host username (to put in invite message)
+            socket.emit('send-invite', inviteJSON, player.uuid, user.username);
+        })
+
+        console.log(inviteJSON);
+
+        await axios.post("http://localhost:5050/invites/add", inviteJSON);
+
+        if (inviteList.length === 1) {
+            alert("Invite sent to 1 player.");
+        }
+        else {
+            alert("Invite sent to " + inviteList.length + " players.");
+        }
+
+        setClosing(true);
+        setTimeout(() => {
+            close();
+        }, 400);
+    }
+
+    const resetForm = () => {
+        setClosing(false);
+        setCurrentSearchUsername('');
+        setEnteredSearchUsername('');
+        setSearchedPlayer({});
+        setPlayerFound(false);
+        setPlayerNotFound(false);
+        setPlayerAlreadyAdded(false);
+        setPlayerCount(0);
+        setSelfFound(false);
+        setInviteList([]);
+    };
     
     return (
-        <Popup modal nested 
+        <Popup modal
             className={closing ? 'custom' : ''}
             onOpen={() => {setClosing(false)}}
+            onClose={() => {resetForm()}}
             closeOnDocumentClick={false}
-            open = {openInvitePopup}
+            trigger={<button>Invite players</button>}
             >
             {close => (
                 <div className={closing ? 'custom-popup' : ''}>
@@ -166,11 +232,11 @@ const InvitePopup = ({ openInvitePopup, setOpenInvitePopup }) => {
                     ))}
 
                     <br height='50'/>
+                    <button onClick={() => handleInvite(close)} disabled={inviteList.length === 0}>Invite</button>
                     <button onClick={() => {
                         setClosing(true);
                         setTimeout(() => {
                             close();
-                            setOpenInvitePopup(false);
                         }, 400);
                     }}>Close</button>
                 </div>
@@ -180,4 +246,4 @@ const InvitePopup = ({ openInvitePopup, setOpenInvitePopup }) => {
     )
 }
 
-export default InvitePopup;
+export default InvitePlayersPopup;

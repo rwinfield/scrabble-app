@@ -20,9 +20,32 @@ connection.once('open', () => {
 })
 
 const userRouter = require('./routes/users');
+const inviteRouter = require('./routes/invites');
 
 app.use('/users', userRouter);
+app.use('/invites', inviteRouter);
 
 app.listen(port, () => {
     console.log(`Server is running on port: ${port}`);
 });
+
+const io = require("socket.io")(4000, {
+    cors: {
+        origin: ['http://localhost:3000']
+    }
+})
+
+io.on('connection', socket => {
+    console.log("socket id (server): ", socket.id);
+
+    socket.on('initUser', uuid => {
+        socket.join(`user-${uuid}`);
+        socket.join('receive-invite');
+        console.log(`${uuid} just joined`);
+    })
+
+    socket.on('send-invite', (invite, recipientUuid, hostUsername) => {
+        console.log(`invite sent to ${recipientUuid}`);
+        io.to(`user-${recipientUuid}`).emit('receive-invite', invite, hostUsername);
+    })
+})
