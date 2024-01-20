@@ -3,7 +3,7 @@ import Popup from 'reactjs-popup';
 import 'reactjs-popup/dist/index.css';
 import axios from 'axios';
 import { useSupabaseUser } from '../supabaseUser';
-import { io } from 'socket.io-client';
+import socket from '../socket'
 
 const InvitePlayersPopup = () => {
 
@@ -139,12 +139,14 @@ const InvitePlayersPopup = () => {
             });
         });
 
-        const socket = io('http://localhost:4000');
         inviteList.forEach(player => {
             // send the invite to 'send-invite' channel with the invite JSON object, the recipient UUID,
             // and the host username (to put in invite message)
             socket.emit('send-invite', inviteJSON, player.uuid, user.username);
         })
+
+        // host "accepts" their own invite
+        socket.emit('accept-invite', inviteJSON);
 
         console.log(inviteJSON);
 

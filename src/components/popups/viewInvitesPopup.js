@@ -1,12 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import Popup from 'reactjs-popup';
 import 'reactjs-popup/dist/index.css';
-import { io } from 'socket.io-client';
+import socket from '../socket'
 import { useInviteHandler } from '../inviteHandler';
 
 const ViewInvitesPopup = () => {
 
-    const { gamesInvitedTo: gamesInvitedTo } = useInviteHandler();
+    let { gamesInvitedTo } = useInviteHandler();
+
+    const sortedByDate = gamesInvitedTo
+        .map(obj => { return { ...obj, date: new Date(obj.date) } })
+        .sort((a, b) => b.date - a.date);
+
+    gamesInvitedTo = sortedByDate;
 
     const numInvites = Object.keys(gamesInvitedTo).length;
 
@@ -18,11 +24,55 @@ const ViewInvitesPopup = () => {
     console.log("numInvites: ", numInvites);
 
     function getHostName(invite) {
+        console.log(invite);
         try {
             return invite.players[0].username;
         } catch (e) {
             console.error(e);
         }
+    }
+
+    function getTimeElapsed(invite) {
+        try {
+            const date = invite.date;
+            const elapsed = new Date().getTime() - date;
+            const s = Math.floor(elapsed/1000);
+            const m = Math.floor((elapsed/1000)/60);
+            const h = Math.floor((elapsed/1000)/3600);
+            const d = Math.floor((elapsed/1000)/(24*3600));
+            console.log(`${d}d, ${h}h, ${m}m, ${s}s`);
+            if (d >= 1) {
+                return `${d}d`
+            }
+            else if (h >= 1) {
+                return `${h}h`
+            }
+            else if (m >= 1) {
+                return `${m}m`
+            }
+            else {
+                return `${s}s`
+            }
+        } catch (e) {
+            console.log(e);
+        }
+    }
+
+    function acceptInvite(invite) {
+        console.log("I JUST EMITTED")
+        socket.emit('accept-invite', invite);
+        // update invite obj in database so that the user's accpted field is true
+    }
+
+    function declineInvite(invite) {
+        // update invite obj in database so that the user's accpted field is false
+    }
+
+    function handleClose(close) {
+        setClosing(true);
+        setTimeout(() => {
+            close();
+        }, 400);
     }
 
     return (
@@ -45,8 +95,9 @@ const ViewInvitesPopup = () => {
                                     <li>
                                         {getHostName(gamesInvitedTo[key])}
                                         <br/>
-                                        <button>Accept</button>
-                                        <button>Decline</button>
+                                        <button onClick={() => {acceptInvite(gamesInvitedTo[key]); handleClose(close);}}>Accept</button>
+                                        <button onClick={() => declineInvite(gamesInvitedTo[key])}>Decline</button>
+                                        {getTimeElapsed(gamesInvitedTo[key])} ago
                                     </li>
                                 </div>
                             ))}
@@ -55,10 +106,7 @@ const ViewInvitesPopup = () => {
                         
                     )}
                     <button onClick={() => {
-                        setClosing(true);
-                        setTimeout(() => {
-                            close();
-                        }, 400);
+                        handleClose(close);
                     }}>Close</button>
                 </div>
             )}

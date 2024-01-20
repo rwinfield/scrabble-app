@@ -48,4 +48,10 @@ io.on('connection', socket => {
         console.log(`invite sent to ${recipientUuid}`);
         io.to(`user-${recipientUuid}`).emit('receive-invite', invite, hostUsername);
     })
+
+    socket.on('accept-invite', (invite) => {
+        console.log("someone accepted an invite");
+        socket.join(invite.lobbyID);
+        socket.emit('join-lobby', invite);
+    })
 })

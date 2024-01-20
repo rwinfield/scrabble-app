@@ -3,17 +3,17 @@ import { useNavigate } from 'react-router-dom';
 import React, { useState, useEffect } from 'react';
 import supabase from './supabaseClient';
 import 'reactjs-popup/dist/index.css';
-import PlayPopup from './popups/playPopup';
 import InvitePlayersPopup from './popups/invitePlayersPopup';
 import ViewInvitesPopup from './popups/viewInvitesPopup';
 import { useSupabaseUser } from './supabaseUser';
-import { io } from 'socket.io-client';
+import { useInviteHandler } from './inviteHandler';
 
 function LoginSuccess() {
 
     const navigate = useNavigate();
 
     const { supabaseUser: user } = useSupabaseUser();
+    const { inLobby, inviteToGame } = useInviteHandler();
 
     async function signOutUser() {
         await supabase.auth.signOut();
@@ -28,6 +28,9 @@ function LoginSuccess() {
                     <h1>Welcome, {user.username ? user.username : user.email}!</h1>
                     { !user.username && (
                         <h4>Before you can play, you must set your username. Please click on "My account" below to set your username.</h4>
+                    )}
+                    { inLobby && (
+                        <h4>You are in {inviteToGame.players[0].username}'s lobby.</h4>
                     )}
                     <br/>
                         {/* <PlayPopup usernameExists={user.username}/> */}

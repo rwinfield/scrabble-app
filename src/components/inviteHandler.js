@@ -1,4 +1,5 @@
 import { io } from 'socket.io-client';
+import socket from './socket'
 import { useEffect, useState, useContext, createContext } from 'react';
 import { useSupabaseUser } from './supabaseUser';
 import Popup from 'reactjs-popup';
@@ -17,6 +18,8 @@ export default function InviteHandlerProvider({ children }) {
     const { supabaseUser: user } = useSupabaseUser();
 
     const [gamesInvitedTo, setGamesInvitedTo] = useState([]);
+    const [inLobby, setInLobby] = useState(false);
+    const [inviteToGame, setInviteToGame] = useState(null);
 
     console.log("HI I AM HERE");
     
@@ -37,7 +40,6 @@ export default function InviteHandlerProvider({ children }) {
 
         getInvitesForUser();
 
-        const socket = io('http://localhost:4000', {reconnection:false});
         if (!socket) return;
         socket.emit('initUser', user.id);
         socket.on('connect', () => {
@@ -51,14 +53,18 @@ export default function InviteHandlerProvider({ children }) {
                 const inviteMessage = `${hostUsername} is inviting you to their game!`                
                 toast.success(inviteMessage);
                 console.log(inviteMessage);
-                console.log(invite);
             } catch (err) {
                 console.log(err);
             }
             
         });
 
-        
+        socket.on('join-lobby', (invite) => {
+            console.log("OK, HERE")
+            toast.success(`You joined ${invite.players[0].username}'s lobby!`);
+            setInLobby(true);
+            setInviteToGame(invite);
+        })
 
         return (() => {
             socket.disconnect()
@@ -69,7 +75,7 @@ export default function InviteHandlerProvider({ children }) {
     console.log("GOING TO RETURN:", gamesInvitedTo);
 
     return (
-        <inviteHandlerContext.Provider value={{gamesInvitedTo}}>
+        <inviteHandlerContext.Provider value={{gamesInvitedTo, inLobby, inviteToGame}}>
             <Toaster />
             {children}
         </inviteHandlerContext.Provider>
