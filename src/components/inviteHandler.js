@@ -18,8 +18,7 @@ export default function InviteHandlerProvider({ children }) {
     const { supabaseUser: user } = useSupabaseUser();
 
     const [gamesInvitedTo, setGamesInvitedTo] = useState([]);
-    const [inLobby, setInLobby] = useState(false);
-    const [inviteToGame, setInviteToGame] = useState(null);
+    const [lobbyStatus, setLobbyStatus] = useState(null);
 
     console.log("HI I AM HERE");
     
@@ -32,7 +31,11 @@ export default function InviteHandlerProvider({ children }) {
             const invitesWhileAway = await axios.get(`http://localhost:5050/invites/getInvitesForUser/${user.id}`);
             console.log(invitesWhileAway);
             invitesWhileAway.data.forEach(invite => {
-                if (invite.active) {
+                const playerIndex = invite.players.findIndex(player => player.uuid === user.id);
+                if (invite.players[playerIndex].accepted) { // if the user accepted an invite in a previous sesson that is still valid 
+                    setLobbyStatus(invite);
+                }
+                else {
                     setGamesInvitedTo(old => [...old, invite]);
                 }
             });
@@ -59,23 +62,51 @@ export default function InviteHandlerProvider({ children }) {
             
         });
 
-        socket.on('join-lobby', (invite) => {
-            console.log("OK, HERE")
-            toast.success(`You joined ${invite.players[0].username}'s lobby!`);
-            setInLobby(true);
-            setInviteToGame(invite);
+        socket.on('update-lobby', async (invite, username, action) => {
+            setLobbyStatus(invite);
+            if (action === "accept") {
+                toast.success(`${username} joined the game!`)
+            }
+            else if (action === "decline") {
+                toast.success(`${username} declined to join.`)
+            }
+            else {
+                toast.success(`${username} left the game!`)
+            }
+        })
+
+        socket.on('host-left', (invite) => {
+            if (user.id === invite.players[0].uuid) {
+                toast.success('You have terminated the game.');
+            }
+            else {
+                toast.success('The host has left. The game has been cancelled.')
+            }
+
+            setLobbyStatus(null);
+            setGamesInvitedTo(oldInvites => oldInvites.filter(inv => inv.lobbyID !== invite.lobbyID)); // reset
+        })
+
+        socket.on('player-left', (invite) => {
+            setLobbyStatus(null);
+            setGamesInvitedTo(oldInvites => oldInvites.filter(inv => inv.lobbyID !== invite.lobbyID)); // reset
+            // reset
         })
 
         return (() => {
-            socket.disconnect()
+            socket.disconnect();
         })
         
     }, []);
 
+    useEffect(() => {
+        console.log("AAAAA lobbyStatus just changed to: ", lobbyStatus);
+    }, [lobbyStatus])
+
     console.log("GOING TO RETURN:", gamesInvitedTo);
 
     return (
-        <inviteHandlerContext.Provider value={{gamesInvitedTo, inLobby, inviteToGame}}>
+        <inviteHandlerContext.Provider value={{gamesInvitedTo, setGamesInvitedTo, lobbyStatus, setLobbyStatus}}>
             <Toaster />
             {children}
         </inviteHandlerContext.Provider>

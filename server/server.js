@@ -40,7 +40,6 @@ io.on('connection', socket => {
 
     socket.on('initUser', uuid => {
         socket.join(`user-${uuid}`);
-        socket.join('receive-invite');
         console.log(`${uuid} just joined`);
     })
 
@@ -49,9 +48,29 @@ io.on('connection', socket => {
         io.to(`user-${recipientUuid}`).emit('receive-invite', invite, hostUsername);
     })
 
-    socket.on('accept-invite', (invite) => {
+    socket.on('accept-invite', (invite, username) => {
         console.log("someone accepted an invite");
         socket.join(invite.lobbyID);
-        socket.emit('join-lobby', invite);
+        socket.broadcast.to(invite.lobbyID).emit('update-lobby', invite, username, "accept");
+    })
+
+    socket.on('decline-invite', (invite, username) => {
+        io.to(invite.lobbyID).emit('update-lobby', invite, username, "decline"); 
+    })
+
+    socket.on('leave-lobby', (invite, username) => {
+        socket.emit('player-left', invite);     
+        socket.leave(invite.lobbyID);   
+        io.to(invite.lobbyID).emit('update-lobby', invite, username, "leave");
+    })
+
+    socket.on('join-lobby-as-host', (lobbyID) => {
+        socket.join(lobbyID);
+    })
+
+    socket.on('host-left-lobby', (invite) => {
+        io.to(invite.lobbyID).emit('host-left', invite);
+        io.in(invite.lobbyID).socketsLeave(invite.lobbyID);
+
     })
 })

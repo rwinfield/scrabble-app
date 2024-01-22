@@ -4,6 +4,8 @@ import 'reactjs-popup/dist/index.css';
 import axios from 'axios';
 import { useSupabaseUser } from '../supabaseUser';
 import socket from '../socket'
+import { useInviteHandler } from '../inviteHandler';
+import toast, { Toaster } from 'react-hot-toast';
 
 const InvitePlayersPopup = () => {
 
@@ -41,6 +43,7 @@ const InvitePlayersPopup = () => {
     const [inviteList, setInviteList] = useState([]);
 
     const { supabaseUser: user } = useSupabaseUser();
+    const { setLobbyStatus } = useInviteHandler();
 
     useEffect(() => {
         function getUserData() {
@@ -120,22 +123,24 @@ const InvitePlayersPopup = () => {
                 active: true,
                 lobbyID: `lobby_${user.id}_${timestamp.getTime()}`,
                 date: timestamp,            
-                players: [
-                    {
+                players: [ 
+                    { // represents host
                         uuid: user.id,
                         username: user.username,
                         isHost: true,
-                        accepted: true
+                        accepted: true,
+                        declined: false
                     }
                 ]
             }
 
         inviteList.forEach(player => {
-            inviteJSON.players.push({
+            inviteJSON.players.push({ // represents invited player
                 uuid: player.uuid,
                 username: player.username,
                 isHost: false,
-                accepted: false
+                accepted: false,
+                declined: false
             });
         });
 
@@ -145,18 +150,19 @@ const InvitePlayersPopup = () => {
             socket.emit('send-invite', inviteJSON, player.uuid, user.username);
         })
 
-        // host "accepts" their own invite
-        socket.emit('accept-invite', inviteJSON);
+        setLobbyStatus(inviteJSON);
 
         console.log(inviteJSON);
 
         await axios.post("http://localhost:5050/invites/add", inviteJSON);
 
+        socket.emit('join-lobby-as-host', inviteJSON.lobbyID);
+
         if (inviteList.length === 1) {
-            alert("Invite sent to 1 player.");
+            toast.success("Invite sent to 1 player.");
         }
         else {
-            alert("Invite sent to " + inviteList.length + " players.");
+            toast.success("Invite sent to " + inviteList.length + " players.");
         }
 
         setClosing(true);
@@ -179,72 +185,75 @@ const InvitePlayersPopup = () => {
     };
     
     return (
-        <Popup modal
-            className={closing ? 'custom' : ''}
-            onOpen={() => {setClosing(false)}}
-            onClose={() => {resetForm()}}
-            closeOnDocumentClick={false}
-            trigger={<button>Invite players</button>}
-            >
-            {close => (
-                <div className={closing ? 'custom-popup' : ''}>
-                    Search for other players (max: 3)
-                    <br/>
-                    <input
-                        type="text"
-                        placeholder="Enter a username..."
-                        value={currentSearchUsername}
-                        onChange={(event) => setCurrentSearchUsername(event.target.value.trim())}
-                        disabled={playerCount === 3 ? true : false}
-                    />
-                    <br/>
-                    <button onClick={() => {handlePlayerSearch()}}>Search</button>
-                    {playerFound && (
-                        <div>
-                            {enteredSearchUsername}
-                            <button onClick={() => {addToInviteList()} }>Add</button>
-                        </div>
-                    )}
-                    {playerNotFound && (
-                        <div>
-                            No player found with the username '{enteredSearchUsername}'.
-                        </div>
-                    )}
-                    {selfFound && (
-                        <div>
-                            Did you really think you could invite yourself?
-                        </div>
-                    )}
-                    {playerAlreadyAdded && (
-                        <div>
-                            You have already added '{enteredSearchUsername}'.
-                        </div>
-                    )}
-                    <br/>
-                    {inviteList.length > 0 && <h4>Your invite list:</h4>}
-                    {Object.keys(inviteList).map((playerKey) => (
-                        <div key={playerKey}>
-                            {inviteList[playerKey].username !== '' && (
-                            <li>
-                                {inviteList[playerKey].username}
-                                <button onClick={() => handleDelete(inviteList[playerKey])}>Remove</button>
-                            </li>
-                            )}
-                        </div>
-                    ))}
+        <div>
+        <Toaster/>
+            <Popup modal
+                className={closing ? 'custom' : ''}
+                onOpen={() => {setClosing(false)}}
+                onClose={() => {resetForm()}}
+                closeOnDocumentClick={false}
+                trigger={<button>Invite players</button>}
+                >
+                {close => (
+                    <div className={closing ? 'custom-popup' : ''}>
+                        Search for other players (max: 3)
+                        <br/>
+                        <input
+                            type="text"
+                            placeholder="Enter a username..."
+                            value={currentSearchUsername}
+                            onChange={(event) => setCurrentSearchUsername(event.target.value.trim())}
+                            disabled={playerCount === 3 ? true : false}
+                        />
+                        <br/>
+                        <button onClick={() => {handlePlayerSearch()}}>Search</button>
+                        {playerFound && (
+                            <div>
+                                {enteredSearchUsername}
+                                <button onClick={() => {addToInviteList()} }>Add</button>
+                            </div>
+                        )}
+                        {playerNotFound && (
+                            <div>
+                                No player found with the username '{enteredSearchUsername}'.
+                            </div>
+                        )}
+                        {selfFound && (
+                            <div>
+                                Did you really think you could invite yourself?
+                            </div>
+                        )}
+                        {playerAlreadyAdded && (
+                            <div>
+                                You have already added '{enteredSearchUsername}'.
+                            </div>
+                        )}
+                        <br/>
+                        {inviteList.length > 0 && <h4>Your invite list:</h4>}
+                        {Object.keys(inviteList).map((playerKey) => (
+                            <div key={playerKey}>
+                                {inviteList[playerKey].username !== '' && (
+                                <li>
+                                    {inviteList[playerKey].username}
+                                    <button onClick={() => handleDelete(inviteList[playerKey])}>Remove</button>
+                                </li>
+                                )}
+                            </div>
+                        ))}
 
-                    <br height='50'/>
-                    <button onClick={() => handleInvite(close)} disabled={inviteList.length === 0}>Invite</button>
-                    <button onClick={() => {
-                        setClosing(true);
-                        setTimeout(() => {
-                            close();
-                        }, 400);
-                    }}>Close</button>
-                </div>
-                
-            )}   
-        </Popup>
+                        <br height='50'/>
+                        <button onClick={() => handleInvite(close)} disabled={inviteList.length === 0}>Invite</button>
+                        <button onClick={() => {
+                            setClosing(true);
+                            setTimeout(() => {
+                                close();
+                            }, 400);
+                        }}>Close</button>
+                    </div>
+                    
+                )}   
+            </Popup>
+        </div>
     )
 }
 

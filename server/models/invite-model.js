@@ -19,6 +19,10 @@ const playerSchema = new Schema({
     accepted: {
         type: Boolean,
         required: true
+    },
+    declined: {
+        type: Boolean,
+        required: true
     }
 })
 
