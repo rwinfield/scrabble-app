@@ -9,7 +9,7 @@ router.route('/').get((req, res) => {
 
 router.route('/:uuid').get((req, res) => {
     User.find({uuid: req.params.uuid})
-        .then(users => res.json(users))
+        .then(user => res.json(user))
         .catch(err => res.status(400).json('Error: ' + err));
 });
 

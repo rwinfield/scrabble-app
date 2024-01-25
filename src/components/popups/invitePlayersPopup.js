@@ -156,7 +156,7 @@ const InvitePlayersPopup = () => {
 
         await axios.post("http://localhost:5050/invites/add", inviteJSON);
 
-        socket.emit('join-lobby-as-host', inviteJSON.lobbyID);
+        socket.emit('join-lobby-as-host', inviteJSON);
 
         if (inviteList.length === 1) {
             toast.success("Invite sent to 1 player.");

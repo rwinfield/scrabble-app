@@ -74,12 +74,13 @@ const ViewInvitesPopup = () => {
         const refreshedInvite = (await axios.get(`http://localhost:5050/invites/getInviteByLobbyID/${invite.lobbyID}`)).data;
         if (refreshedInvite.active) {
             setLobbyStatus(refreshedInvite);
-            socket.emit('accept-invite', refreshedInvite, user.username);
+            socket.emit('accept-invite', refreshedInvite, user);
             console.log("I JUST EMITTED")
             toast.success(`You joined ${refreshedInvite.players[0].username}'s lobby!`);
         }
         else {
             toast.error('This invite is no longer active.')
+            setGamesInvitedTo(oldInvites => oldInvites.filter(inv => inv.lobbyID !== refreshedInvite.lobbyID));
         }
     }
 

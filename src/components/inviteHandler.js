@@ -19,8 +19,6 @@ export default function InviteHandlerProvider({ children }) {
 
     const [gamesInvitedTo, setGamesInvitedTo] = useState([]);
     const [lobbyStatus, setLobbyStatus] = useState(null);
-
-    console.log("HI I AM HERE");
     
     useEffect(() => {
 
@@ -32,8 +30,9 @@ export default function InviteHandlerProvider({ children }) {
             console.log(invitesWhileAway);
             invitesWhileAway.data.forEach(invite => {
                 const playerIndex = invite.players.findIndex(player => player.uuid === user.id);
-                if (invite.players[playerIndex].accepted) { // if the user accepted an invite in a previous sesson that is still valid 
+                if (invite.players[playerIndex].accepted) { // if the user accepted an invite in a previous sesson that is still valid, then rejoin 
                     setLobbyStatus(invite);
+                    socket.emit('accept-invite', invite);
                 }
                 else {
                     setGamesInvitedTo(old => [...old, invite]);
@@ -71,7 +70,7 @@ export default function InviteHandlerProvider({ children }) {
                 toast.success(`${username} declined to join.`)
             }
             else {
-                toast.success(`${username} left the game!`)
+                toast.success(`${username} left the game.`)
             }
         })
 
@@ -93,17 +92,26 @@ export default function InviteHandlerProvider({ children }) {
             // reset
         })
 
+        socket.on('player-disconnect', async (invite, retUsername) => {
+            toast.success(`${retUsername} has disconnected.`);
+            setLobbyStatus(invite);
+        })
+
+        socket.on('host-disconnect', async (lobbyID) => {
+            toast.success('The host has disconnected. The game has been cancelled.');
+            setLobbyStatus(null);
+            setGamesInvitedTo(oldInvites => oldInvites.filter(inv => inv.lobbyID !== lobbyID));
+        })
+
+        socket.on('set-inactive', async (lobbyID) => { // needed in the case that there are no players in the lobby
+            await axios.post('http://localhost:5050/invites/setLobbyInactive', {lobbyID: lobbyID});
+        })
+
         return (() => {
             socket.disconnect();
         })
         
     }, []);
-
-    useEffect(() => {
-        console.log("AAAAA lobbyStatus just changed to: ", lobbyStatus);
-    }, [lobbyStatus])
-
-    console.log("GOING TO RETURN:", gamesInvitedTo);
 
     return (
         <inviteHandlerContext.Provider value={{gamesInvitedTo, setGamesInvitedTo, lobbyStatus, setLobbyStatus}}>
